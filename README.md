@@ -26,7 +26,42 @@ javac -d out $(find src -name "*.java")
 ## Como executar
 
 ```bash
+mkdir -p out
+javac -d out $(find src -name "*.java")
 java -cp out br.com.aps.biometria.Main
+```
+
+## Execução completa pelo terminal
+
+Use exatamente esta sequência dentro da pasta do projeto:
+
+```bash
+cd /Users/lira/Documents/Faculdade/APS_5
+mkdir -p out
+javac -d out $(find src -name "*.java")
+java -cp out br.com.aps.biometria.Main
+```
+
+## Rebuild e execução
+
+Se quiser recompilar tudo do zero e executar em seguida:
+
+```bash
+cd /Users/lira/Documents/Faculdade/APS_5
+rm -rf out
+mkdir -p out
+javac -d out $(find src -name "*.java")
+java -cp out br.com.aps.biometria.Main
+```
+
+## Execução com script
+
+Se preferir usar os scripts criados no projeto:
+
+```bash
+cd /Users/lira/Documents/Faculdade/APS_5
+./build.sh
+./run.sh
 ```
 
 ## Observações

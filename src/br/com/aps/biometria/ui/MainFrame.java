@@ -80,6 +80,7 @@ public class MainFrame extends JFrame {
 
     private JPanel buildRegistrationPanel() {
         JPanel panel = createSectionPanel("Cadastro de Usuário");
+        panel.setLayout(new GridBagLayout());
         GridBagConstraints gbc = createDefaultConstraints();
 
         addField(panel, gbc, 0, "Nome", nameField);
@@ -90,8 +91,9 @@ public class MainFrame extends JFrame {
         registerButton.addActionListener(event -> handleRegister());
 
         gbc.gridx = 0;
-        gbc.gridy = 3;
-        gbc.gridwidth = 2;
+        gbc.gridy = 6;
+        gbc.gridwidth = 1;
+        gbc.weightx = 1.0;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.insets = new Insets(16, 0, 0, 0);
         panel.add(registerButton, gbc);
@@ -101,6 +103,7 @@ public class MainFrame extends JFrame {
 
     private JPanel buildAuthenticationPanel() {
         JPanel panel = createSectionPanel("Identificação para Acesso");
+        panel.setLayout(new GridBagLayout());
         GridBagConstraints gbc = createDefaultConstraints();
 
         addField(panel, gbc, 0, "Matrícula", authRegistrationField);
@@ -110,8 +113,9 @@ public class MainFrame extends JFrame {
         authButton.addActionListener(event -> handleAuthentication());
 
         gbc.gridx = 0;
-        gbc.gridy = 2;
-        gbc.gridwidth = 2;
+        gbc.gridy = 4;
+        gbc.gridwidth = 1;
+        gbc.weightx = 1.0;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.insets = new Insets(16, 0, 0, 0);
         panel.add(authButton, gbc);
@@ -168,12 +172,16 @@ public class MainFrame extends JFrame {
         field.setBorder(new EmptyBorder(8, 10, 8, 10));
 
         gbc.gridx = 0;
-        gbc.gridy = row;
-        gbc.weightx = 0.25;
-        panel.add(new JLabel(label + ":"), gbc);
+        gbc.gridy = row * 2;
+        gbc.gridwidth = 1;
+        gbc.weightx = 1.0;
+        gbc.insets = new Insets(10, 0, 4, 0);
+        JLabel fieldLabel = new JLabel(label + ":");
+        fieldLabel.setFont(new Font("SansSerif", Font.BOLD, 14));
+        panel.add(fieldLabel, gbc);
 
-        gbc.gridx = 1;
-        gbc.weightx = 0.75;
+        gbc.gridy = (row * 2) + 1;
+        gbc.insets = new Insets(0, 0, 8, 0);
         panel.add(field, gbc);
     }
 
