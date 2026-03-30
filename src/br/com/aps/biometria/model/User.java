@@ -3,12 +3,12 @@ package br.com.aps.biometria.model;
 public class User {
     private final String name;
     private final String registration;
-    private final String biometricCode;
+    private final String faceImagePath;
 
-    public User(String name, String registration, String biometricCode) {
+    public User(String name, String registration, String faceImagePath) {
         this.name = name;
         this.registration = registration;
-        this.biometricCode = biometricCode;
+        this.faceImagePath = faceImagePath;
     }
 
     public String getName() {
@@ -19,12 +19,12 @@ public class User {
         return registration;
     }
 
-    public String getBiometricCode() {
-        return biometricCode;
+    public String getFaceImagePath() {
+        return faceImagePath;
     }
 
     public String toCsvLine() {
-        return escape(name) + ";" + escape(registration) + ";" + escape(biometricCode);
+        return escape(name) + ";" + escape(registration) + ";" + escape(faceImagePath);
     }
 
     public static User fromCsvLine(String line) {

@@ -30,13 +30,12 @@ public class MainFrame extends JFrame {
 
     private final JTextField nameField = new JTextField();
     private final JTextField registrationField = new JTextField();
-    private final JTextField biometricField = new JTextField();
-
     private final JTextField authRegistrationField = new JTextField();
-    private final JTextField authBiometricField = new JTextField();
-
     private final JTextArea usersArea = new JTextArea();
     private final JTextArea statusArea = new JTextArea();
+    private final JLabel registrationFaceStatus = new JLabel("Nenhuma face capturada.");
+
+    private java.awt.image.BufferedImage pendingRegistrationFace;
 
     public MainFrame(BiometricAuthService service) {
         this.service = service;
@@ -85,10 +84,25 @@ public class MainFrame extends JFrame {
 
         addField(panel, gbc, 0, "Nome", nameField);
         addField(panel, gbc, 1, "Matrícula", registrationField);
-        addField(panel, gbc, 2, "Código biométrico", biometricField);
+
+        JButton captureFaceButton = new JButton("Capturar Face");
+        captureFaceButton.addActionListener(event -> handleRegistrationFaceCapture());
 
         JButton registerButton = new JButton("Cadastrar usuário");
         registerButton.addActionListener(event -> handleRegister());
+
+        gbc.gridx = 0;
+        gbc.gridy = 4;
+        gbc.gridwidth = 1;
+        gbc.weightx = 1.0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.insets = new Insets(12, 0, 4, 0);
+        panel.add(captureFaceButton, gbc);
+
+        gbc.gridy = 5;
+        gbc.insets = new Insets(0, 0, 10, 0);
+        registrationFaceStatus.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        panel.add(registrationFaceStatus, gbc);
 
         gbc.gridx = 0;
         gbc.gridy = 6;
@@ -107,13 +121,12 @@ public class MainFrame extends JFrame {
         GridBagConstraints gbc = createDefaultConstraints();
 
         addField(panel, gbc, 0, "Matrícula", authRegistrationField);
-        addField(panel, gbc, 1, "Código biométrico", authBiometricField);
 
-        JButton authButton = new JButton("Validar biometria");
-        authButton.addActionListener(event -> handleAuthentication());
+        JButton authButton = new JButton("Validar Face");
+        authButton.addActionListener(event -> handleAuthenticationWithFace());
 
         gbc.gridx = 0;
-        gbc.gridy = 4;
+        gbc.gridy = 2;
         gbc.gridwidth = 1;
         gbc.weightx = 1.0;
         gbc.fill = GridBagConstraints.HORIZONTAL;
@@ -189,7 +202,7 @@ public class MainFrame extends JFrame {
         ServiceResult result = service.registerUser(
                 nameField.getText(),
                 registrationField.getText(),
-                biometricField.getText()
+                pendingRegistrationFace
         );
 
         appendStatus("Cadastro", result);
@@ -198,23 +211,37 @@ public class MainFrame extends JFrame {
         if (result.isSuccess()) {
             nameField.setText("");
             registrationField.setText("");
-            biometricField.setText("");
+            pendingRegistrationFace = null;
+            registrationFaceStatus.setText("Nenhuma face capturada.");
             refreshUsers();
         }
     }
 
-    private void handleAuthentication() {
-        ServiceResult result = service.authenticate(
-                authRegistrationField.getText(),
-                authBiometricField.getText()
-        );
+    private void handleRegistrationFaceCapture() {
+        java.awt.image.BufferedImage capturedFace = service.captureFaceForRegistration();
+        if (capturedFace != null) {
+            pendingRegistrationFace = capturedFace;
+            registrationFaceStatus.setText("Face capturada com sucesso.");
+            appendStatus("Captura facial", ServiceResult.success("Face pronta para o cadastro."));
+        } else {
+            appendStatus("Captura facial", ServiceResult.error("A captura facial foi cancelada."));
+        }
+    }
+
+    private void handleAuthenticationWithFace() {
+        java.awt.image.BufferedImage capturedFace = service.captureFaceForAuthentication();
+        if (capturedFace == null) {
+            appendStatus("Autenticação", ServiceResult.error("A captura facial foi cancelada."));
+            return;
+        }
+
+        ServiceResult result = service.authenticate(authRegistrationField.getText(), capturedFace);
 
         appendStatus("Autenticação", result);
         showMessage(result);
 
         if (result.isSuccess()) {
             authRegistrationField.setText("");
-            authBiometricField.setText("");
         }
     }
 
@@ -229,7 +256,7 @@ public class MainFrame extends JFrame {
         for (User user : users) {
             builder.append("Nome: ").append(user.getName()).append('\n');
             builder.append("Matrícula: ").append(user.getRegistration()).append('\n');
-            builder.append("Código biométrico: ").append(user.getBiometricCode()).append('\n');
+            builder.append("Face cadastrada: ").append(user.getFaceImagePath()).append('\n');
             builder.append("----------------------------------------").append('\n');
         }
         usersArea.setText(builder.toString());

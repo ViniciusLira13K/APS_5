@@ -1,34 +1,33 @@
-# Sistema Desktop de Identificação Biométrica
+# Sistema Desktop de Identificação Biométrica Facial
 
-Aplicação desktop em Java para cadastro e validação básica de usuários com biometria simulada.
+Aplicação desktop em Java com Swing e OpenCV para cadastro e validação de usuários por biometria facial.
 
 ## Funcionalidades
 
-- cadastrar usuário com nome, matrícula e código biométrico;
-- salvar os usuários localmente em arquivo;
-- autenticar o acesso com matrícula e código biométrico;
+- cadastrar usuário com nome, matrícula e captura facial pela webcam;
+- salvar os usuários localmente em arquivo e em imagem facial;
+- autenticar o acesso com matrícula e reconhecimento facial;
 - exibir lista dos usuários cadastrados;
 - mostrar mensagens de sucesso e falha na própria interface.
 
 ## Estrutura
 
 - `src/` contém o código-fonte Java;
+- `resources/` contém recursos do OpenCV usados pela aplicação;
 - `data/usuarios.csv` armazena os usuários cadastrados;
-- `out/` é o diretório gerado na compilação.
+- `data/faces/` armazena a referência facial de cada matrícula;
+- `target/` é o diretório gerado pelo Maven.
 
 ## Como compilar
 
 ```bash
-mkdir -p out
-javac -d out $(find src -name "*.java")
+mvn -Dmaven.repo.local=.m2/repository clean compile
 ```
 
 ## Como executar
 
 ```bash
-mkdir -p out
-javac -d out $(find src -name "*.java")
-java -cp out br.com.aps.biometria.Main
+mvn -Dmaven.repo.local=.m2/repository clean compile exec:java
 ```
 
 ## Execução completa pelo terminal
@@ -37,9 +36,7 @@ Use exatamente esta sequência dentro da pasta do projeto:
 
 ```bash
 cd /Users/lira/Documents/Faculdade/APS_5
-mkdir -p out
-javac -d out $(find src -name "*.java")
-java -cp out br.com.aps.biometria.Main
+mvn -Dmaven.repo.local=.m2/repository clean compile exec:java
 ```
 
 ## Rebuild e execução
@@ -48,10 +45,8 @@ Se quiser recompilar tudo do zero e executar em seguida:
 
 ```bash
 cd /Users/lira/Documents/Faculdade/APS_5
-rm -rf out
-mkdir -p out
-javac -d out $(find src -name "*.java")
-java -cp out br.com.aps.biometria.Main
+rm -rf target
+mvn -Dmaven.repo.local=.m2/repository clean compile exec:java
 ```
 
 ## Execução com script
@@ -66,6 +61,7 @@ cd /Users/lira/Documents/Faculdade/APS_5
 
 ## Observações
 
-- a biometria é simulada por um código textual;
+- a comparação facial implementada é básica, adequada para demonstração acadêmica;
 - a matrícula é tratada como identificador único do usuário;
-- o arquivo de dados é criado automaticamente na primeira execução.
+- o projeto depende da webcam e da permissão de câmera no macOS;
+- o arquivo de dados e as imagens faciais são criados automaticamente na primeira execução.

@@ -1,4 +1,6 @@
 out/
+.m2/
+target/
 .DS_Store
 .idea/
 *.iml
