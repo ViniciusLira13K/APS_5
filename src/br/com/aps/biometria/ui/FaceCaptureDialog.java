@@ -26,6 +26,7 @@ public class FaceCaptureDialog extends JDialog {
     private final Timer timer;
 
     private Mat currentFrame;
+    private Mat currentDetectedFace;
     private BufferedImage capturedFace;
 
     private FaceCaptureDialog(JFrame owner, FaceRecognitionService faceRecognitionService) {
@@ -99,7 +100,8 @@ public class FaceCaptureDialog extends JDialog {
             return;
         }
 
-        currentFrame = frame;
+        currentFrame = frame.clone();
+        currentDetectedFace = faceRecognitionService.detectAndNormalizeFace(currentFrame);
         Mat annotated = faceRecognitionService.annotateFrame(frame);
         previewLabel.setIcon(new javax.swing.ImageIcon(faceRecognitionService.matToBufferedImage(annotated)));
         previewLabel.setText("");
@@ -111,9 +113,14 @@ public class FaceCaptureDialog extends JDialog {
             return;
         }
 
-        Mat detectedFace = faceRecognitionService.detectAndNormalizeFace(currentFrame);
+        Mat detectedFace = currentDetectedFace;
         if (detectedFace == null) {
-            JOptionPane.showMessageDialog(this, "Nenhum rosto válido foi detectado. Tente novamente.", "Biometria Facial", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(
+                    this,
+                    "A foto capturada não possui um rosto válido.\nEssa foto não foi salva. Tire uma nova foto.",
+                    "Biometria Facial",
+                    JOptionPane.WARNING_MESSAGE
+            );
             return;
         }
 

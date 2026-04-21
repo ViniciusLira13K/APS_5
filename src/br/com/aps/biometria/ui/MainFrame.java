@@ -23,6 +23,7 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.awt.Insets;
+import java.util.ArrayList;
 import java.util.List;
 
 public class MainFrame extends JFrame {
@@ -33,9 +34,9 @@ public class MainFrame extends JFrame {
     private final JTextField authRegistrationField = new JTextField();
     private final JTextArea usersArea = new JTextArea();
     private final JTextArea statusArea = new JTextArea();
-    private final JLabel registrationFaceStatus = new JLabel("Nenhuma face capturada.");
+    private final JLabel registrationFaceStatus = new JLabel("Nenhuma amostra facial capturada.");
 
-    private java.awt.image.BufferedImage pendingRegistrationFace;
+    private final List<java.awt.image.BufferedImage> pendingRegistrationFaces = new ArrayList<>();
 
     public MainFrame(BiometricAuthService service) {
         this.service = service;
@@ -85,7 +86,7 @@ public class MainFrame extends JFrame {
         addField(panel, gbc, 0, "Nome", nameField);
         addField(panel, gbc, 1, "Matrícula", registrationField);
 
-        JButton captureFaceButton = new JButton("Capturar Face");
+        JButton captureFaceButton = new JButton("Capturar Amostra Facial");
         captureFaceButton.addActionListener(event -> handleRegistrationFaceCapture());
 
         JButton registerButton = new JButton("Cadastrar usuário");
@@ -202,7 +203,7 @@ public class MainFrame extends JFrame {
         ServiceResult result = service.registerUser(
                 nameField.getText(),
                 registrationField.getText(),
-                pendingRegistrationFace
+                new ArrayList<>(pendingRegistrationFaces)
         );
 
         appendStatus("Cadastro", result);
@@ -211,8 +212,8 @@ public class MainFrame extends JFrame {
         if (result.isSuccess()) {
             nameField.setText("");
             registrationField.setText("");
-            pendingRegistrationFace = null;
-            registrationFaceStatus.setText("Nenhuma face capturada.");
+            pendingRegistrationFaces.clear();
+            registrationFaceStatus.setText("Nenhuma amostra facial capturada.");
             refreshUsers();
         }
     }
@@ -220,9 +221,14 @@ public class MainFrame extends JFrame {
     private void handleRegistrationFaceCapture() {
         java.awt.image.BufferedImage capturedFace = service.captureFaceForRegistration();
         if (capturedFace != null) {
-            pendingRegistrationFace = capturedFace;
-            registrationFaceStatus.setText("Face capturada com sucesso.");
-            appendStatus("Captura facial", ServiceResult.success("Face pronta para o cadastro."));
+            if (pendingRegistrationFaces.size() >= BiometricAuthService.REQUIRED_FACE_SAMPLES) {
+                appendStatus("Captura facial", ServiceResult.error("As 5 amostras já foram capturadas. Faça o cadastro ou limpe o formulário."));
+                return;
+            }
+
+            pendingRegistrationFaces.add(capturedFace);
+            registrationFaceStatus.setText("Amostras capturadas: " + pendingRegistrationFaces.size() + "/" + BiometricAuthService.REQUIRED_FACE_SAMPLES);
+            appendStatus("Captura facial", ServiceResult.success("Amostra facial " + pendingRegistrationFaces.size() + " de " + BiometricAuthService.REQUIRED_FACE_SAMPLES + " pronta."));
         } else {
             appendStatus("Captura facial", ServiceResult.error("A captura facial foi cancelada."));
         }
@@ -256,7 +262,10 @@ public class MainFrame extends JFrame {
         for (User user : users) {
             builder.append("Nome: ").append(user.getName()).append('\n');
             builder.append("Matrícula: ").append(user.getRegistration()).append('\n');
-            builder.append("Face cadastrada: ").append(user.getFaceImagePath()).append('\n');
+            int sampleCount = user.getFaceImagePath().contains("|")
+                    ? user.getFaceImagePath().split("\\|").length
+                    : 1;
+            builder.append("Amostras faciais: ").append(sampleCount).append('\n');
             builder.append("----------------------------------------").append('\n');
         }
         usersArea.setText(builder.toString());

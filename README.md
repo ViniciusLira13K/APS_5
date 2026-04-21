@@ -4,7 +4,7 @@ Aplicação desktop em Java com Swing e OpenCV para cadastro e validação de us
 
 ## Funcionalidades
 
-- cadastrar usuário com nome, matrícula e captura facial pela webcam;
+- cadastrar usuário com nome, matrícula e cinco capturas faciais pela webcam;
 - salvar os usuários localmente em arquivo e em imagem facial;
 - autenticar o acesso com matrícula e reconhecimento facial;
 - exibir lista dos usuários cadastrados;
@@ -62,6 +62,7 @@ cd /Users/lira/Documents/Faculdade/APS_5
 ## Observações
 
 - a comparação facial implementada é básica, adequada para demonstração acadêmica;
+- o cadastro agora exige 5 amostras faciais para melhorar o reconhecimento;
 - a matrícula é tratada como identificador único do usuário;
 - o projeto depende da webcam e da permissão de câmera no macOS;
 - o arquivo de dados e as imagens faciais são criados automaticamente na primeira execução.

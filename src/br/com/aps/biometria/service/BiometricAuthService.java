@@ -5,10 +5,13 @@ import br.com.aps.biometria.repository.UserRepository;
 import org.opencv.core.Mat;
 
 import java.awt.image.BufferedImage;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 public class BiometricAuthService {
+    public static final int REQUIRED_FACE_SAMPLES = 5;
+
     private final UserRepository repository;
     private final FaceRecognitionService faceRecognitionService;
 
@@ -17,7 +20,7 @@ public class BiometricAuthService {
         this.faceRecognitionService = new FaceRecognitionService();
     }
 
-    public ServiceResult registerUser(String name, String registration, BufferedImage capturedFace) {
+    public ServiceResult registerUser(String name, String registration, List<BufferedImage> capturedFaces) {
         String normalizedName = normalize(name);
         String normalizedRegistration = normalize(registration);
 
@@ -25,25 +28,28 @@ public class BiometricAuthService {
             return ServiceResult.error("Preencha nome e matrícula.");
         }
 
-        if (capturedFace == null) {
-            return ServiceResult.error("Capture a face do usuário antes de cadastrar.");
+        if (capturedFaces == null || capturedFaces.size() < REQUIRED_FACE_SAMPLES) {
+            return ServiceResult.error("Capture as " + REQUIRED_FACE_SAMPLES + " fotos faciais antes de cadastrar.");
         }
 
         if (repository.findByRegistration(normalizedRegistration).isPresent()) {
             return ServiceResult.error("Já existe um usuário cadastrado com essa matrícula.");
         }
 
-        Mat normalizedFace = faceRecognitionService.detectAndNormalizeFace(capturedFace);
-        if (normalizedFace == null) {
-            return ServiceResult.error("Nenhum rosto válido foi encontrado na imagem capturada.");
+        List<Mat> normalizedFaces = new ArrayList<>();
+        for (BufferedImage capturedFace : capturedFaces) {
+            Mat normalizedFace = faceRecognitionService.detectAndNormalizeFace(capturedFace);
+            if (normalizedFace == null) {
+                return ServiceResult.error("Uma das fotos capturadas não contém um rosto válido.");
+            }
+            normalizedFaces.add(normalizedFace);
         }
 
-        String faceFileName = normalizedRegistration + ".png";
-        faceRecognitionService.saveFace(normalizedFace, faceFileName);
+        String faceReference = faceRecognitionService.saveFaceSamples(normalizedFaces, normalizedRegistration);
 
-        User user = new User(normalizedName, normalizedRegistration, faceFileName);
+        User user = new User(normalizedName, normalizedRegistration, faceReference);
         repository.save(user);
-        return ServiceResult.success("Usuário cadastrado com sucesso.");
+        return ServiceResult.success("Usuário cadastrado com " + REQUIRED_FACE_SAMPLES + " amostras faciais.");
     }
 
     public ServiceResult authenticate(String registration, BufferedImage capturedFace) {
