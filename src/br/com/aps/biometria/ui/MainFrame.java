@@ -23,6 +23,7 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.awt.Insets;
+import java.util.ArrayList;
 import java.util.List;
 
 public class MainFrame extends JFrame {
@@ -30,13 +31,12 @@ public class MainFrame extends JFrame {
 
     private final JTextField nameField = new JTextField();
     private final JTextField registrationField = new JTextField();
-    private final JTextField biometricField = new JTextField();
-
     private final JTextField authRegistrationField = new JTextField();
-    private final JTextField authBiometricField = new JTextField();
-
     private final JTextArea usersArea = new JTextArea();
     private final JTextArea statusArea = new JTextArea();
+    private final JLabel registrationFaceStatus = new JLabel("Nenhuma amostra facial capturada.");
+
+    private final List<java.awt.image.BufferedImage> pendingRegistrationFaces = new ArrayList<>();
 
     public MainFrame(BiometricAuthService service) {
         this.service = service;
@@ -85,10 +85,25 @@ public class MainFrame extends JFrame {
 
         addField(panel, gbc, 0, "Nome", nameField);
         addField(panel, gbc, 1, "Matrícula", registrationField);
-        addField(panel, gbc, 2, "Código biométrico", biometricField);
+
+        JButton captureFaceButton = new JButton("Capturar Amostra Facial");
+        captureFaceButton.addActionListener(event -> handleRegistrationFaceCapture());
 
         JButton registerButton = new JButton("Cadastrar usuário");
         registerButton.addActionListener(event -> handleRegister());
+
+        gbc.gridx = 0;
+        gbc.gridy = 4;
+        gbc.gridwidth = 1;
+        gbc.weightx = 1.0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.insets = new Insets(12, 0, 4, 0);
+        panel.add(captureFaceButton, gbc);
+
+        gbc.gridy = 5;
+        gbc.insets = new Insets(0, 0, 10, 0);
+        registrationFaceStatus.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        panel.add(registrationFaceStatus, gbc);
 
         gbc.gridx = 0;
         gbc.gridy = 6;
@@ -107,13 +122,12 @@ public class MainFrame extends JFrame {
         GridBagConstraints gbc = createDefaultConstraints();
 
         addField(panel, gbc, 0, "Matrícula", authRegistrationField);
-        addField(panel, gbc, 1, "Código biométrico", authBiometricField);
 
-        JButton authButton = new JButton("Validar biometria");
-        authButton.addActionListener(event -> handleAuthentication());
+        JButton authButton = new JButton("Validar Face");
+        authButton.addActionListener(event -> handleAuthenticationWithFace());
 
         gbc.gridx = 0;
-        gbc.gridy = 4;
+        gbc.gridy = 2;
         gbc.gridwidth = 1;
         gbc.weightx = 1.0;
         gbc.fill = GridBagConstraints.HORIZONTAL;
@@ -189,7 +203,7 @@ public class MainFrame extends JFrame {
         ServiceResult result = service.registerUser(
                 nameField.getText(),
                 registrationField.getText(),
-                biometricField.getText()
+                new ArrayList<>(pendingRegistrationFaces)
         );
 
         appendStatus("Cadastro", result);
@@ -198,23 +212,42 @@ public class MainFrame extends JFrame {
         if (result.isSuccess()) {
             nameField.setText("");
             registrationField.setText("");
-            biometricField.setText("");
+            pendingRegistrationFaces.clear();
+            registrationFaceStatus.setText("Nenhuma amostra facial capturada.");
             refreshUsers();
         }
     }
 
-    private void handleAuthentication() {
-        ServiceResult result = service.authenticate(
-                authRegistrationField.getText(),
-                authBiometricField.getText()
-        );
+    private void handleRegistrationFaceCapture() {
+        java.awt.image.BufferedImage capturedFace = service.captureFaceForRegistration();
+        if (capturedFace != null) {
+            if (pendingRegistrationFaces.size() >= BiometricAuthService.REQUIRED_FACE_SAMPLES) {
+                appendStatus("Captura facial", ServiceResult.error("As 5 amostras já foram capturadas. Faça o cadastro ou limpe o formulário."));
+                return;
+            }
+
+            pendingRegistrationFaces.add(capturedFace);
+            registrationFaceStatus.setText("Amostras capturadas: " + pendingRegistrationFaces.size() + "/" + BiometricAuthService.REQUIRED_FACE_SAMPLES);
+            appendStatus("Captura facial", ServiceResult.success("Amostra facial " + pendingRegistrationFaces.size() + " de " + BiometricAuthService.REQUIRED_FACE_SAMPLES + " pronta."));
+        } else {
+            appendStatus("Captura facial", ServiceResult.error("A captura facial foi cancelada."));
+        }
+    }
+
+    private void handleAuthenticationWithFace() {
+        java.awt.image.BufferedImage capturedFace = service.captureFaceForAuthentication();
+        if (capturedFace == null) {
+            appendStatus("Autenticação", ServiceResult.error("A captura facial foi cancelada."));
+            return;
+        }
+
+        ServiceResult result = service.authenticate(authRegistrationField.getText(), capturedFace);
 
         appendStatus("Autenticação", result);
         showMessage(result);
 
         if (result.isSuccess()) {
             authRegistrationField.setText("");
-            authBiometricField.setText("");
         }
     }
 
@@ -229,7 +262,10 @@ public class MainFrame extends JFrame {
         for (User user : users) {
             builder.append("Nome: ").append(user.getName()).append('\n');
             builder.append("Matrícula: ").append(user.getRegistration()).append('\n');
-            builder.append("Código biométrico: ").append(user.getBiometricCode()).append('\n');
+            int sampleCount = user.getFaceImagePath().contains("|")
+                    ? user.getFaceImagePath().split("\\|").length
+                    : 1;
+            builder.append("Amostras faciais: ").append(sampleCount).append('\n');
             builder.append("----------------------------------------").append('\n');
         }
         usersArea.setText(builder.toString());
